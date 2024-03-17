@@ -5,12 +5,15 @@ use std::{
     env,
 };
 use tokio::{self, main};
+use futures::future::TryJoinAll;
 
 #[main]
 async fn main() {
     let language = get_language();
     let songs = get_songs(language).await;
     let local_songs = get_local_songs();
+
+    let mut que: Vec<tokio::task::JoinHandle<()>> = Vec::new();
 
     for song in songs {
         let file_name = song
@@ -27,12 +30,21 @@ async fn main() {
 
         if local_songs.contains(&file_name.to_string()) {
             print!("Piosenka jest pobrana :)\n");
-            continue;
+            continue
         }
 
-        print!("Pobieranie\n");
-        // download_song(&song.file.url).await;
-    }
+        let url = song.file.url;
+        let res = tokio::spawn(async move {download_song(url.to_string()).await});
+        que.push(res);
+        // download_song(url.to_string()).await;
+    };
+
+    match que.into_iter()
+        .collect::<TryJoinAll<_>>()
+        .await {
+            Ok(_) => print!("Zaktualizowano piosenki"),
+            Err(e) => print!("{}", e)
+        }
 }
 
 async fn get_songs(lang: String) -> Vec<root::Mp3> {
@@ -53,10 +65,12 @@ async fn get_songs(lang: String) -> Vec<root::Mp3> {
     }
 }
 
-async fn download_song(url: &str) {
-    let name = url.split("/").last().unwrap();
+async fn download_song(url: String) {
+    let name = &url.split("/").last().unwrap();
+    print!("Pobieranie\n");
+    print!("{}\n", url);
 
-    let resp = reqwest::get(url).await.expect("request failed");
+    let resp = reqwest::get(&url).await.expect("request failed");
     let mut content = Cursor::new(resp.bytes().await.expect("Nie udało się pobrać pliku"));
     let mut file = File::create(name).expect("failed to create file");
     std::io::copy(&mut content, &mut file).expect("Nie udało się skopiować pliku");
