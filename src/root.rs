@@ -18,7 +18,7 @@ pub struct Root {
     pub pub_image: PubImage,
     #[serde(skip)]
     pub languages: serde_json::Value,
-    
+
     pub files: serde_json::Map<String, serde_json::Value>,
 }
 
