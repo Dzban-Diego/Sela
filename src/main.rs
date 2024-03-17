@@ -2,12 +2,14 @@ mod root;
 use std::{
     fs::{self, File},
     io::Cursor,
+    env,
 };
 use tokio::{self, main};
 
 #[main]
 async fn main() {
-    let songs = get_songs().await;
+    let language = get_language();
+    let songs = get_songs(language).await;
     let local_songs = get_local_songs();
 
     for song in songs {
@@ -29,15 +31,25 @@ async fn main() {
         }
 
         print!("Pobieranie\n");
-        download_song(&song.file.url).await;
+        // download_song(&song.file.url).await;
     }
 }
 
-async fn get_songs() -> Vec<root::Mp3> {
-    let data = reqwest::get("https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?output=json&pub=osg&fileformat=MP3%2CAAC&alllangs=0&langwritten=P&txtCMSLang=P").await.unwrap().json::<root::Root>().await;
+async fn get_songs(lang: String) -> Vec<root::Mp3> {
+    let url = format!("https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS?output=json&pub=osg&fileformat=MP3%2CAAC&alllangs=0&langwritten={}&txtCMSLang={}", lang, lang);
+    print!("Url: {}\n", url);
+    let data = reqwest::get(url).await.unwrap().json::<root::Root>().await;
+    
     match data {
-        Ok(res) => res.files.p.mp3,
-        Err(_) => panic!("Nie udało się pobrać piosenek"),
+        Ok(res) => {
+            let test = res.files;
+            for key in test {
+                let value =  serde_json::from_value::<root::Files>(key.1).expect("Nie udało się odczytać json");
+                return value.mp3
+            }
+            panic!("Nie udało się odczytać json!")
+        },
+        Err(e) => panic!("Nie udało się pobrać piosenek. Err: {}", e),
     }
 }
 
@@ -59,4 +71,12 @@ fn get_local_songs() -> Vec<String> {
         })
         .filter_map(|file_name| Some(String::from(file_name.to_str().unwrap())))
         .collect::<Vec<String>>()
+}
+
+fn get_language() -> String {
+    let args: Vec<_> = env::args().collect();
+    if args.len() > 1 {
+        return args[1][..].to_string();
+    }
+    panic!("Musisz podać prawidłowy skrót języka. Chodzi o skrót języka. \n(Polski: P, Angielski: E)")
 }

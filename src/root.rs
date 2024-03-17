@@ -16,8 +16,10 @@ pub struct Root {
     pub track: Value,
     pub specialty: String,
     pub pub_image: PubImage,
-    pub languages: Languages,
-    pub files: Files,
+    #[serde(skip)]
+    pub languages: serde_json::Value,
+    
+    pub files: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -30,30 +32,7 @@ pub struct PubImage {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Languages {
-    #[serde(rename = "P")]
-    pub p: P,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct P {
-    pub name: String,
-    pub direction: String,
-    pub locale: String,
-    pub script: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Files {
-    #[serde(rename = "P")]
-    pub p: P2,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct P2 {
     #[serde(rename = "MP3")]
     pub mp3: Vec<Mp3>,
 }
