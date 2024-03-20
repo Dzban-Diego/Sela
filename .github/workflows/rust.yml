@@ -25,7 +25,7 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --release && strip target/release/sela.bin && mv target/release/sela.bin target/release/sela_amd64.bin
+        run: cargo build --all --release && strip target/release/sela && mv target/release/sela target/release/sela_amd64.bin
 
       - name: Release
         uses: softprops/action-gh-release@v1
