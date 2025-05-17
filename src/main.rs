@@ -4,6 +4,7 @@ use std::{
     env,
     fs::{self, File},
     io::Cursor,
+    process::Command,
 };
 use tokio::{self, main};
 
@@ -66,6 +67,8 @@ async fn download_song(url: String) {
     let mut content = Cursor::new(resp.bytes().await.expect("Nie udało się pobrać pliku"));
     let mut file = File::create(name).expect("failed to create file");
     std::io::copy(&mut content, &mut file).expect("Nie udało się skopiować pliku");
+
+    normalize_file(name)
 }
 
 fn get_local_songs() -> Vec<String> {
@@ -88,4 +91,26 @@ fn get_language() -> String {
         "Pobieranie języka polskiego. Możesz też podać skrót języka. \n(Polski: P, Angielski: E)\n"
     );
     "P".to_string()
+}
+
+fn normalize_file(file_name: &str) {
+    dbg!("normalizacja");
+    let tmp_file_name = format!("{}{}", "tmp_", file_name);
+    let _ = fs::rename(file_name, &tmp_file_name).expect("Nie udało się zmienić nazwy");
+    dbg!(&tmp_file_name, file_name);
+
+    //ffmpeg -i osg_E_009.mp3 -af "loudnorm=I=-16:TP=-1.5:LRA=11" osg_E_009_n.mp3
+    let arg = format!(
+        "-i {} -af 'loudnorm=I=-16:TP=-1.5:LRA=11' {}",
+        tmp_file_name, file_name
+    );
+
+    dbg!(&arg);
+
+    let out = Command::new("ffmpeg")
+        .arg(arg)
+        .output()
+        .expect("Failed to execute command");
+
+    dbg!(out);
 }
